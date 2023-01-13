@@ -1,6 +1,14 @@
 # ObjVLispSkeleton
 
-This project is the program skeleton to build step by step the kernel described in the book a reflective kernel available on http://books.pharo.org.
-The full and complete program is privately held on gitlab.inria.fr.
+Implementation for the ObjVLispSkeleton by Stephane Ducasse (https://books.pharo.org/booklet-ReflectiveCore/), a simple reflective kernel based on Pharo and inspired on ObjVLisp.
 
-If you are a teacher and you want to get the solution, do not hesitate to ask for the full version. 
+# Installation
+
+You can install the project on a Pharo image with the following expression:
+
+```Smalltalk
+Metacello new
+    baseline: #ObjV;
+    repository: 'github://blueplanelabs/ObjVLispSkeleton';
+    load.
+```
