@@ -304,10 +304,14 @@ Obj >> addUnaryMethod: aSelector withBody: aStringBlock [
 
 { #category : #'instance allocation' }
 Obj >> allocateAnInstance [
+
 	"Returns a newly created instance of self, an ObjClass. 
 	In this implementation the identifier of the object class is the name of the class."
 
-	^ self
+	| objInstance |
+	objInstance := self class new: self objIVs size.
+	objInstance at: self offsetForClass  put: self objName.
+	^ objInstance
 ]
 
 { #category : #'message passing' }
@@ -339,7 +343,7 @@ Obj >> bodyOfMethod: aSelector [
 	"Return the method associated with the selector <aSelector> in the receiver.
 	Return nil if the selector is not defined.  self is an objClass"
 
-	^ self
+	(self objMethodDict includesKey: aSelector) ifTrue: [ ^ self objMethodDict at: aSelector  ] ifFalse: [ ^ nil ] 
 ]
 
 { #category : #debugging }
@@ -431,10 +435,21 @@ Obj >> keywordValue: aSymbol getFrom: anArray ifAbsent: aDefaultValue [
 
 { #category : #'method lookup' }
 Obj >> lookup: selector [
+
 	"look for the method named <selector> starting in the receiver. 
 	The lookup is done for a message sent to <anObjObject>. self is an objClass"
 
-	^ self
+	| localMethodOrNil |
+	localMethodOrNil := self objMethodDict
+		                    at: selector
+		                    ifPresent: [ :aMethod | aMethod ]
+		                    ifAbsent: [ nil ].
+	localMethodOrNil
+		ifNil: [ 
+			(self == self objSuperclass or: [ self objSuperclass isNil ])
+				ifTrue: [ ^ nil ]
+				ifFalse: [ ^ self objSuperclass lookup: selector ] ]
+		ifNotNil: [ ^ localMethodOrNil ]
 ]
 
 { #category : #'method management' }
@@ -460,98 +475,100 @@ Obj >> numberOfIVs [
 Obj >> objClass [
 	"Receiver should be: anObjObject. Returns the class of the receiver (which is an ObjObject) and not its internal identification. Differs from classId  which is a primitive to access the structure representing a class"
 
-	^ self
+	^ Obj giveClassNamed: self objClassId 
 ]
 
 { #category : #'object structure primitive' }
 Obj >> objClassId [
 	"Receiver should be: anObjObject. Returns the identifier that identifies the class of the receiver (an objObject). In this implementation we chose to use the class name as identifier i.e., in an Obj(#ObjClass #ObjPoint #ObjObject #(#class #x #y) #(#x: #y:) nil) returns #ObjClass (and not the class itself)."
 
-	^ self
+	^ self at: self offsetForClass 
 ]
 
 { #category : #'object structure primitive' }
 Obj >> objClassId: anObjClassId [
 	"Receiver should be: anObjObject. Set the identifier that identifies the class of the receiver (anObjObject)."
 
-	^ self
+	^ self at: self offsetForClass  put: anObjClassId  
 ]
 
 { #category : #'class structure primitive' }
 Obj >> objIVs [
 	"Receiver should be: anObjClass. Returns the list of instance variables: i.e., in an Obj(#ObjClass #ObjPoint #ObjObject #(#class #x #y) #(#x: #y:) nil) returns #(#class #x #y)."
 
-	^ self
+	^ self at: self offsetForIVs
 ]
 
 { #category : #'class structure primitive' }
 Obj >> objIVs: anOrderedCollection [
 	"Receiver should be: anObjClass. Set the list of instance variable names of the receiver (anObjClass)"
 
-	^ self
+	^ self at: self offsetForIVs  put: anOrderedCollection  
 ]
 
 { #category : #'class structure primitive' }
 Obj >> objKeywords [
 	"Receiver should be: anObjClass. Returns the keyword list of the receiver (anObjClass) i.e., in an Obj(#ObjClass #ObjPoint #ObjObject #(#class #x #y) #(#x: #y:) nil) returns the array #(#x: #y:)."
 
-	^ self
+	^ self at: self offsetForKeywords 
 ]
 
 { #category : #'class structure primitive' }
 Obj >> objKeywords: anOrderedCollection [
 	"Receiver should be: anObjClass. Sets the list of keywords of the receiver (anObjClass). Note that this method is just an accessor and does not compute the actual list of keywords"
 
-	^ self
+	^ self at: self offsetForKeywords  put: anOrderedCollection  
 ]
 
 { #category : #'class structure primitive' }
 Obj >> objMethodDict [
 	"Receiver should be: anObjClass. Returns the method dictionary of the receiver (anObjClass) i.e., in an Obj(#ObjClass #ObjPoint #ObjObject #(#class #x #y) #(#x: #y:) nil) returns nil (here the dictionary is not initialized)."
 
-	^ self
+	^ self at: self offsetForMethodDict 
 ]
 
 { #category : #'class structure primitive' }
 Obj >> objMethodDict: aDictionary [
 	"Receiver should be: anObjClass. Sets the method dictionary of the receiver (anObjClass)"
 
-	^ self
+	^ self at: self offsetForMethodDict put: aDictionary  
 ]
 
 { #category : #'class structure primitive' }
 Obj >> objName [
 	"Receiver should be: anObjClass. Returns the name of the receiver (anObjClass), i.e., in an Obj(#ObjClass #ObjPoint #ObjObject #(#class #x #y) #(#x: #y:) nil) returns #ObjPoint"
 
-	^ self
+	^ self at: self offsetForName 
 ]
 
 { #category : #'class structure primitive' }
 Obj >> objName: aName [
 	"Receiver should be: anObjClass. Set the name of the receiver (anObjClass)"
 
-	^ self
+	^ self at: self offsetForName  put: aName  
 ]
 
 { #category : #'class structure primitive' }
 Obj >> objSuperclass [
+
 	"Receiver should be: anObjClass. Returns the superclass of the receiver (which is an objClass) and not its internal identification. Differs from superclassId which is a primitive to access the structure representing a class."
 
-	^ self
+	self objSuperclassId ifNotNil: [ ^ self class giveClassNamed: self objSuperclassId ] ifNil: [ ^ nil ] 
+	
 ]
 
 { #category : #'class structure primitive' }
 Obj >> objSuperclassId [
 	"Receiver should be: anObjClass. Returns the superclass id of the receiver (anObjClass), i.e., in an Obj(#ObjClass #ObjPoint #ObjObject #(#class #x #y) #(#x: #y:) nil) returns #ObjObject."
 
-	^ self
+	^ self at: self offsetForSuperclass 
 ]
 
 { #category : #'class structure primitive' }
 Obj >> objSuperclassId: anObjClassId [
 	"Receiver should be: anObjClass. Set the superclass id of the receiver (anObjClass)"
 
-	^ self
+	^ self at: self offsetForSuperclass  put: anObjClassId  
 ]
 
 { #category : #'object structure offset' }
@@ -601,15 +618,21 @@ Obj >> offsetFromClassOfInstanceVariable: aSymbol [
 	"Returns the index of the instance variable named aSymbol for an class anObjClass.
 	Returns 0 if the aSymbol is not present in the instance variable lists of anObjClass"
 
-	^ self
+	^ self objIVs indexOf: aSymbol 
 ]
 
 { #category : #'iv management' }
 Obj >> offsetFromObjectOfInstanceVariable: aSymbol [
+
 	"Returns the offset of the instance variable named aSymbol in the object anObjObject.
 	If aSymbol is not an instance variable is not an instance variable of the object raise an error"
 
-	^ self
+	| offsetFromClass |
+	offsetFromClass := self objClass offsetFromClassOfInstanceVariable: aSymbol.
+	offsetFromClass == 0
+		ifTrue: [ 
+		self error: 'Instance variable ' , aSymbol , ' is missing'. ]
+		ifFalse: [ ^ offsetFromClass ]
 ]
 
 { #category : #printing }
@@ -644,9 +667,10 @@ Obj >> returnValuesFrom: anInitargArray followingSchema: anArrayOfKeywords [
 
 { #category : #'message passing' }
 Obj >> send: selector withArguments: arguments [
+
 	"send the message whose selector is <selector> to the receiver. The arguments of the messages are an array <arguments>. The method is lookep up in the class of the receiver. self is an objObject or a objClass."
 
-	^ self
+	^ self basicSend: selector withArguments: arguments from: self objClass
 ]
 
 { #category : #'message passing' }
@@ -667,12 +691,16 @@ Obj >> stringOfBlockBodyFromHeader: col andBody: aString [
 
 { #category : #'message passing' }
 Obj >> super: selector withArguments: arguments from: aSuperclass [
+
 	"Invoke an oveeriden method named <selector> with an array of arguments <arguments>.  self is an objClass. aSuperclass should be the superclass of the class containing the method using super"
 
 	^ self
+		  basicSend: selector
+		  withArguments: arguments
+		  from: aSuperclass 
 ]
 
 { #category : #'iv management' }
 Obj >> valueOfInstanceVariable: aSymbol [
-	^ self
+	^ self at: (self offsetFromObjectOfInstanceVariable: aSymbol )
 ]
